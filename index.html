@@ -75,18 +75,14 @@
         <p>&copy; 2026 R_EPOXI.PF. Todos los derechos reservados.</p>
     </footer>
 
-  <script>
+    <script>
     const PIN_ELIMINAR = "050325";
     const ADMIN_EMAIL = "repoxi.pf@gmail.com"; 
     
-    // Tratamos de cargar los productos guardados en la memoria
-    let misObras = JSON.parse(localStorage.getItem('productosResinaEpoxica')) || [];
-    
-    // Si la lista está vacía, intentamos cargar los productos base (si existen)
-    if (misObras.length === 0 && typeof productosBase !== 'undefined') {
-        misObras = [...productosBase];
-    }
+    // 🔑 REEMPLAZA ESTO POR TU LLAVE REAL DE IMGBB (Copia las letras y números de ://imgbb.com)
+    const IMGBB_API_KEY = "TU_LLAVE_DE_IMGBB_AQUÍ"; 
 
+    let misObras = JSON.parse(localStorage.getItem('productosResinaEpoxica')) || [];
     let usuarioLogueado = localStorage.getItem('usuarioNegocioEmail') || null;
 
     function actualizarInterfazUsuario() {
@@ -142,12 +138,12 @@
         
         const form = document.getElementById('artForm');
         
-        // REPARACIÓN 1: Cambiamos la subida de archivos locales por un campo URL para links de internet
+        // 🛠️ REPARACIÓN VISUAL: Aquí obligamos a la página a mostrar el botón de la segunda imagen
         const grupoImagen = form.querySelector('label[for="imagen"]')?.parentElement;
         if (grupoImagen) {
             grupoImagen.innerHTML = `
-                <label for="imagen">Enlace (URL) de la foto de internet:</label>
-                <input type="url" id="imagen" required placeholder="Pega el enlace directo (.jpg o .png) de Postimages o ImgBB">
+                <label for="imagen">Foto del producto (Selecciona de tu laptop):</label>
+                <input type="file" id="imagen" accept="image/*" required style="padding:5px; display:block; margin-top:5px;">
             `;
         }
 
@@ -185,7 +181,7 @@
         grid.innerHTML = ''; 
 
         if (misObras.length === 0) {
-            grid.innerHTML = `<p style="color: #666; text-align: center; grid-column: 1/-1; padding: 20px;">No hay productos publicados.</p>`;
+            grid.innerHTML = `<p style="color: #666; text-align: center; grid-column: 1/-1; padding: 20px;">No hay productos publicados todavía.</p>`;
             return;
         }
 
@@ -208,8 +204,8 @@
         });
     }
 
-    // --- REPARACIÓN 2: PUBLICAR UN PRODUCTO UTILIZANDO EL LINK DE INTERNET ---
-    document.getElementById('artForm').addEventListener('submit', function(e) {
+    // 🚀 ENVÍO AUTOMÁTICO DE LA FOTO SELECCIONADA A LA NUBE
+    document.getElementById('artForm').addEventListener('submit', async function(e) {
         e.preventDefault();
 
         if (usuarioLogueado !== ADMIN_EMAIL) {
@@ -217,38 +213,65 @@
             return;
         }
 
-        const tituloInput = document.getElementById('titulo').value;
-        const descInput = document.getElementById('descripcion').value;
-        const wsInput = document.getElementById('whatsapp')?.value.replace(/[^0-9]/g, '') || '';
-        const igInput = document.getElementById('instagram')?.value.replace('@', '').trim() || '';
-        const fbInput = document.getElementById('facebook')?.value.trim() || '';
-        const tkInput = document.getElementById('tiktok')?.value.replace('@', '').trim() || '';
-        const urlImagenInput = document.getElementById('imagen').value.trim();
-
-        if (!urlImagenInput.startsWith('http')) {
-            alert("Por favor, introduce un enlace de imagen válido que empiece por http:// o https://");
+        // Corregido: Agregamos [0] para capturar correctamente el archivo suelto de la laptop
+        const archivoImagen = document.getElementById('imagen').files[0];
+        if (!archivoImagen) {
+            alert("Por favor, selecciona una foto de tus archivos.");
             return;
         }
 
-        const nuevaObra = {
-            id: 'prod_' + Date.now(),
-            titulo: tituloInput,
-            descripcion: descInput,
-            whatsapp: wsInput,
-            instagram: igInput,
-            facebook: fbInput,
-            tiktok: tkInput,
-            creador: usuarioLogueado, 
-            imagen: urlImagenInput // Se guarda la URL directa de internet
-        };
+        try {
+            alert("Subiendo imagen a internet... Por favor espera un momento.");
 
-        misObras.unshift(nuevaObra);
-        localStorage.setItem('productosResinaEpoxica', JSON.stringify(misObras));
+            const formData = new FormData();
+            formData.append("image", archivoImagen);
 
-        cargarGaleria();
-        document.getElementById('artForm').reset();
-        cerrarFormulario();
-        alert("¡Producto publicado con éxito!");
+            // Enviamos la imagen real a ImgBB usando tu clave API
+            const respuesta = await fetch(`https://://imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+                method: "POST",
+                body: formData
+            });
+
+            const datosNube = await respuesta.json();
+
+            if (!datosNube.success) {
+                throw new Error("La subida falló. Revisa que tu clave de ImgBB esté bien pegada.");
+            }
+
+            // Guardamos el enlace que nos genera la nube automáticamente
+            const urlPublicaDeLaFoto = datosNube.data.url;
+
+            const tituloInput = document.getElementById('titulo').value;
+            const descInput = document.getElementById('descripcion').value;
+            const wsInput = document.getElementById('whatsapp')?.value.replace(/[^0-9]/g, '') || '';
+            const igInput = document.getElementById('instagram')?.value.replace('@', '').trim() || '';
+            const fbInput = document.getElementById('facebook')?.value.trim() || '';
+            const tkInput = document.getElementById('tiktok')?.value.replace('@', '').trim() || '';
+
+            const nuevaObra = {
+                id: 'prod_' + Date.now(),
+                titulo: tituloInput,
+                descripcion: descInput,
+                whatsapp: wsInput,
+                instagram: igInput,
+                facebook: fbInput,
+                tiktok: tkInput,
+                creador: usuarioLogueado, 
+                imagen: urlPublicaDeLaFoto
+            };
+
+            misObras.unshift(nuevaObra);
+            localStorage.setItem('productosResinaEpoxica', JSON.stringify(misObras));
+
+            cargarGaleria();
+            document.getElementById('artForm').reset();
+            cerrarFormulario();
+            alert("¡Producto publicado con éxito!");
+
+        } catch (error) {
+            console.error(error);
+            alert("❌ Ocurrió un error al subir la foto. Asegúrate de haber colocado tu API Key de ImgBB en el código.");
+        }
     });
 
     function abrirModal(id) {
@@ -287,34 +310,6 @@
 
         if (!tieneRedes) redesHTML = '';
 
-        let opcionesPropietarioHTML = '';
-        if (usuarioLogueado === ADMIN_EMAIL) {
-            opcionesPropietarioHTML = `
-                <div style="margin-top:15px;">
-                    <button class="btn-amarillo" style="background:#ffc107; padding:6px 12px; border:none; border-radius:4px; font-weight:bold; cursor:pointer; margin-right:5px;" onclick="activarModoEdicion('${obra.id}')">Editar producto</button>
-                    <button class="btn-rojo" style="background:#dc3545; color:white; padding:6px 12px; border:none; border-radius:4px; font-weight:bold; cursor:pointer;" onclick="eliminarObra('${obra.id}')">Eliminar producto</button>
-                </div>
-                <div class="pin-recordatorio" style="font-size:11px; color:#666; margin-top:5px;">Código para eliminar: <strong>${PIN_ELIMINAR}</strong></div>
-            `;
-        }
-
-        infoContenedor.innerHTML = `
-            <h2>${obra.titulo}</h2>
-            <p>${obra.descripcion ? obra.descripcion : "Sin descripción."}</p>
-            ${redesHTML}
-            ${opcionesPropietarioHTML}
-        `;
-    }
-
-    function cerrarModal() {
-        document.getElementById('miModal').style.display = 'none';
-    }
-
-    window.onclick = function(event) {
-        const modal = document.getElementById('miModal');
-        if (event.target === modal) {
-            cerrarModal();
-        }
     }
 
     actualizarInterfazUsuario();
