@@ -1,0 +1,287 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #ffffff;
+  color: #000000;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Franja Superior */
+header {
+  background-color: #0d47a1;
+  color: #ffffff;
+  padding: 1rem 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.user-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.user-email-display {
+  font-size: 0.9rem;
+}
+
+.hero {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  background-color: #f5f5f5;
+  border-bottom: 2px solid #0d47a1;
+}
+
+.hero h1 {
+  color: #0d47a1;
+  margin-bottom: 0.5rem;
+}
+
+.hero p {
+  color: #333333;
+}
+
+.container {
+  flex: 1;
+  max-width: 1200px;
+  width: 90%;
+  margin: 2rem auto;
+}
+
+.seccion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.seccion-header h2 {
+  color: #0d47a1;
+}
+
+/* Formulario */
+.form-contenedor {
+  display: none;
+  background-color: #ffffff;
+  border: 2px solid #0d47a1;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.form-grupo {
+  margin-bottom: 1rem;
+}
+
+.form-grupo label {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-weight: bold;
+}
+
+.form-grupo input, .form-grupo textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.form-botones {
+  display: flex;
+  gap: 10px;
+}
+
+/* Cuadrícula del Catálogo */
+.galeria-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+/* Tarjeta y Adaptación de la Imagen */
+.tarjeta-obra {
+  background-color: #ffffff;
+  border: 2px solid #0d47a1;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tarjeta-obra:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+.cuadro-imagen {
+  width: 100%;
+  height: 220px;
+  overflow: hidden;
+  background-color: #e0e0e0;
+}
+
+/* Ajusta la imagen automáticamente al tamaño del cuadro */
+.cuadro-imagen img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.info-obra {
+  padding: 1rem;
+  color: #000000;
+}
+
+.info-obra h2 {
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+  color: #0d47a1;
+}
+
+.info-obra p {
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+/* Botones */
+.btn-verde {
+  background-color: #0d47a1;
+  color: #ffffff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.btn-verde:hover {
+  background-color: #0a3880;
+}
+
+.btn-rojo {
+  background-color: #d32f2f;
+  color: #ffffff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.btn-rojo:hover {
+  background-color: #b71c1c;
+}
+
+.btn-amarillo {
+  background-color: #fbc02d;
+  color: #000000;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+/* Ventana Modal */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-contenido {
+  background-color: #ffffff;
+  border-radius: 8px;
+  max-width: 700px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  padding: 1.5rem;
+}
+
+.modal-cerrar {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 1.8rem;
+  cursor: pointer;
+  color: #333;
+}
+
+.modal-img-contenedor {
+  width: 100%;
+  max-height: 400px;
+  overflow: hidden;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+}
+
+.modal-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background-color: #000;
+}
+
+.modal-info h3 {
+  color: #0d47a1;
+  margin-bottom: 0.5rem;
+}
+
+.modal-info input, .modal-info textarea {
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 6px;
+}
+
+.modal-redes {
+  margin-top: 10px;
+  padding: 8px;
+  background-color: #e3f2fd;
+  border-radius: 4px;
+}
+
+.pin-recordatorio {
+  font-size: 0.8rem;
+  color: #666;
+  margin-top: 5px;
+}
+
+/* Franja Inferior */
+footer {
+  background-color: #0d47a1;
+  color: #ffffff;
+  text-align: center;
+  padding: 1rem;
+  margin-top: auto;
+}

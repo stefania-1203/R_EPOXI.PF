@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo de R_EPOXI.PF</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <header>
+        <nav>
+            <div  class="logo">    <img src="repoxi.jpg" width="70" height="60"> R_EPOXI.PF</div> 
+            <div class="user-status-bar">
+                <span id="userEmailDisplay" class="user-email-display">Sin iniciar sesión</span>
+                <button id="btnAuth" class="btn-verde" style="padding: 6px 12px; font-size:13px;" onclick="manejarAutenticacion()">Iniciar Sesión</button>
+            </div>
+        </nav>
+    </header>
+
+    <section class="hero">
+        <h1>Catálogo de Productos en Resina Epóxica</h1>
+        <p>Explora nuestras piezas únicas en resina epóxica.</p>
+    </section>
+
+    <div class="container">
+
+        <section id="galeria">
+            <div class="seccion-header">
+                <h2>Catálogo de Productos</h2>
+                <button id="btnPublicarAcceso" class="btn-verde" style="display: none;" onclick="abrirFormularioPublicar()">+ Publicar Producto</button>
+            </div>
+
+            <div id="formularioPublicar" class="form-contenedor">
+                <form id="artForm">
+                    <div class="form-grupo">
+                        <label for="titulo">Nombre del producto o trabajo:</label>
+                        <input type="text" id="titulo" required placeholder="Ej: Mesa de Río con Resina Azul">
+                    </div>
+                    <div class="form-grupo">
+                        <label for="descripcion">Descripción y materiales:</label>
+                        <textarea id="descripcion" rows="3" placeholder="Detalles de la pieza, dimensiones, acabados..."></textarea>
+                    </div>
+                    <div class="form-grupo">
+                        <label for="redes">Contacto o Redes Sociales:</label>
+                        <input type="text" id="redes" placeholder="Ej: WhatsApp: +58... / Instagram: @tu_negocio">
+                    </div>
+                    <div class="form-grupo">
+                        <label for="imagen">Foto del producto:</label>
+                        <input type="file" id="imagen" accept="image/*" required>
+                    </div>
+                    <div class="form-botones">
+                        <button type="submit" class="btn-verde">Subir al Catálogo</button>
+                        <button type="button" class="btn-rojo" onclick="cerrarFormulario()">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+
+            <div id="galeriaGrid" class="galeria-grid"></div>
+
+        </section>
+    </div>
+
+    <div id="miModal" class="modal">
+        <div class="modal-contenido">
+            <span class="modal-cerrar" onclick="cerrarModal()">&times;</span>
+            <div class="modal-img-contenedor">
+                <img id="modalImg" class="modal-img" src="" alt="">
+            </div>
+            <div class="modal-info" id="modalInfoCampos"></div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 R_EPOXI.PF. Todos los derechos reservados.</p>
+    </footer>
+
+   <script>
+    const PIN_ELIMINAR = "050325";
+    const ADMIN_EMAIL = "repoxi.pf@gmail.com"; 
+    let misObras = JSON.parse(localStorage.getItem('productosResinaEpoxica')) || [];
+    
+    if (misObras.length === 0) {
+        misObras = [...productosBase];
+    }
+
+    let usuarioLogueado = localStorage.getItem('usuarioNegocioEmail') || null;
+
+    function actualizarInterfazUsuario() {
+        const display = document.getElementById('userEmailDisplay');
+        const btnAuth = document.getElementById('btnAuth');
+        const btnPublicar = document.getElementById('btnPublicarAcceso');
+
+        if (usuarioLogueado) {
+            display.innerText = `Sesión: ${usuarioLogueado}`;
+            btnAuth.innerText = "Cerrar Sesión";
+            btnAuth.className = "btn-rojo";
+
+            if (usuarioLogueado === ADMIN_EMAIL) {
+                btnPublicar.style.display = 'inline-block';
+            } else {
+                btnPublicar.style.display = 'none';
+                cerrarFormulario();
+            }
+        } else {
+            display.innerText = "Sin iniciar sesión";
+            btnAuth.innerText = "Iniciar Sesión";
+            btnAuth.className = "btn-verde";
+            btnPublicar.style.display = 'none';
+            cerrarFormulario();
+        }
+    }
+
+    function manejarAutenticacion() {
+        if (usuarioLogueado) {
+            usuarioLogueado = null;
+            localStorage.removeItem('usuarioNegocioEmail');
+            cerrarFormulario();
+            alert("Has cerrado sesión.");
+        } else {
+            const correo = prompt("Introduce tu correo electrónico para iniciar sesión:");
+            if (correo && correo.trim() !== "" && correo.includes('@')) {
+                usuarioLogueado = correo.trim().toLowerCase();
+                localStorage.setItem('usuarioNegocioEmail', usuarioLogueado);
+                alert(`¡Bienvenido! Sesión iniciada como: ${usuarioLogueado}`);
+            } else if (correo !== null) {
+                alert("Por favor, introduce un correo válido conteniendo un '@'.");
+            }
+        }
+        actualizarInterfazUsuario();
+        cargarGaleria();
+    }
+
+    function abrirFormularioPublicar() {
+        if (usuarioLogueado !== ADMIN_EMAIL) {
+            alert("Acceso denegado. Solo el correo líder puede publicar productos.");
+            return;
+        }
+        
+        // Reemplazar campos de redes viejos en el formulario por los 4 campos individuales
+        const form = document.getElementById('artForm');
+        const grupoRedesViejo = form.querySelector('label[for="redes"]')?.parentElement;
+        
+        if (grupoRedesViejo) {
+            grupoRedesViejo.innerHTML = `
+                <div class="form-grupo" style="margin-bottom:10px;">
+                    <label for="whatsapp">WhatsApp (Número con código de país, ej: 584121234567):</label>
+                    <input type="text" id="whatsapp" placeholder="Ej: 584121234567">
+                </div>
+                <div class="form-grupo" style="margin-bottom:10px;">
+                    <label for="instagram">Usuario de Instagram (sin @):</label>
+                    <input type="text" id="instagram" placeholder="Ej: mi_negocio">
+                </div>
+                <div class="form-grupo" style="margin-bottom:10px;">
+                    <label for="facebook">Usuario o Página de Facebook:</label>
+                    <input type="text" id="facebook" placeholder="Ej: mi.negocio.oficial">
+                </div>
+                <div class="form-grupo" style="margin-bottom:10px;">
+                    <label for="tiktok">Usuario de TikTok (sin @):</label>
+                    <input type="text" id="tiktok" placeholder="Ej: mi_negocio">
+                </div>
+            `;
+        }
+
+        document.getElementById('formularioPublicar').style.display = 'block';
+    }
+
+    function cerrarFormulario() {
+        document.getElementById('formularioPublicar').style.display = 'none';
+    }
+
+    function cargarGaleria() {
+        const grid = document.getElementById('galeriaGrid');
+        grid.innerHTML = ''; 
+
+        misObras.forEach((obra) => {
+            const tarjeta = document.createElement('div');
+            tarjeta.className = 'tarjeta-obra';
+            tarjeta.innerHTML = `
+                <div class="cuadro-imagen">
+                    <img src="${obra.imagen}" alt="${obra.titulo}">
+                </div>
+                <div class="info-obra">
+                    <h2>${obra.titulo}</h2>
+                    <p>${obra.descripcion ? obra.descripcion : "Sin descripción."}</p>
+                </div>
+            `;
+            tarjeta.addEventListener('click', function() {
+                abrirModal(obra.id);
+            });
+            grid.appendChild(tarjeta);
+        });
+    }
+
+    document.getElementById('artForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        if (usuarioLogueado !== ADMIN_EMAIL) {
+            alert("No tienes permisos para realizar esta acción.");
+            return;
+        }
+
+        const tituloInput = document.getElementById('titulo').value;
+        const descInput = document.getElementById('descripcion').value;
+        const wsInput = document.getElementById('whatsapp')?.value.replace(/[^0-9]/g, '') || '';
+        const igInput = document.getElementById('instagram')?.value.replace('@', '').trim() || '';
+        const fbInput = document.getElementById('facebook')?.value.trim() || '';
+        const tkInput = document.getElementById('tiktok')?.value.replace('@', '').trim() || '';
+        const archivoImagen = document.getElementById('imagen').files[0];
+
+        if (archivoImagen) {
+            const reader = new FileReader();
+            
+            reader.onload = function(event) {
+                const nuevaObra = {
+                    id: 'prod_' + Date.now(),
+                    titulo: tituloInput,
+                    descripcion: descInput,
+                    whatsapp: wsInput,
+                    instagram: igInput,
+                    facebook: fbInput,
+                    tiktok: tkInput,
+                    creador: usuarioLogueado, 
+                    imagen: event.target.result
+                };
+
+                misObras.unshift(nuevaObra);
+                localStorage.setItem('productosResinaEpoxica', JSON.stringify(misObras));
+
+                cargarGaleria();
+                document.getElementById('artForm').reset();
+                cerrarFormulario();
+                alert("¡Producto publicado con éxito!");
+            };
+
+            reader.readAsDataURL(archivoImagen);
+        }
+    });
+
+    function abrirModal(id) {
+        const obra = misObras.find(o => o.id === id);
+        if(!obra) return;
+
+        document.getElementById('modalImg').src = obra.imagen;
+        mostrarVistaNormal(obra);
+
+        document.getElementById('miModal').style.display = 'flex';
+    }
+
+    function mostrarVistaNormal(obra) {
+        const infoContenedor = document.getElementById('modalInfoCampos');
+        
+        let redesHTML = '<div class="modal-redes" style="margin-top:15px; display:flex; flex-direction:column; gap:8px;">';
+        let tieneRedes = false;
+
+        if (obra.whatsapp) {
+            redesHTML += `<a href="https://wa.me/${obra.whatsapp}" target="_blank" style="color:#25D366; text-decoration:none; font-weight:bold;">📲 WhatsApp: +${obra.whatsapp}</a>`;
+            tieneRedes = true;
+        }
+        if (obra.instagram) {
+            redesHTML += `<a href="https://instagram.com/${obra.instagram}" target="_blank" style="color:#E1306C; text-decoration:none; font-weight:bold;">📸 Instagram: @${obra.instagram}</a>`;
+            tieneRedes = true;
+        }
+        if (obra.facebook) {
+            redesHTML += `<a href="https://facebook.com/${obra.facebook}" target="_blank" style="color:#4267B2; text-decoration:none; font-weight:bold;">📘 Facebook: ${obra.facebook}</a>`;
+            tieneRedes = true;
+        }
+        if (obra.tiktok) {
+            redesHTML += `<a href="https://tiktok.com/@${obra.tiktok}" target="_blank" style="color:#000; text-decoration:none; font-weight:bold;">🎵 TikTok: @${obra.tiktok}</a>`;
+            tieneRedes = true;
+        }
+        redesHTML += '</div>';
+
+        if (!tieneRedes) redesHTML = '';
+
+        let opcionesPropietarioHTML = '';
+        if (usuarioLogueado === ADMIN_EMAIL) {
+            opcionesPropietarioHTML = `
+                <div style="margin-top:15px;">
+                    <button class="btn-amarillo" onclick="activarModoEdicion('${obra.id}')">Editar producto</button>
+                    <button class="btn-rojo" onclick="eliminarObra('${obra.id}')">Eliminar producto</button>
+                </div>
+                <div class="pin-recordatorio" style="font-size:11px; color:#666; margin-top:5px;">Código para eliminar: <strong>${PIN_ELIMINAR}</strong></div>
+            `;
+        }
+
+        infoContenedor.innerHTML = `
+            <h3>${obra.titulo}</h3>
+            <p style="margin-top:10px; color:#000;">${obra.descripcion ? obra.descripcion : "Sin descripción."}</p>
+            ${redesHTML}
+            ${opcionesPropietarioHTML}
+        `;
+    }
+
+    function activarModoEdicion(id) {
+        if (usuarioLogueado !== ADMIN_EMAIL) return;
+        const obra = misObras.find(o => o.id === id);
+        if (!obra) return;
+
+        const infoContenedor = document.getElementById('modalInfoCampos');
+        infoContenedor.innerHTML = `
+            <h3 style="color:#0d47a1; margin-bottom:15px;">Editar Producto</h3>
+            
+            <label style="color: #333; font-size:13px; font-weight:bold;">Nombre del producto:</label>
+            <input type="text" id="editTitulo" value="${obra.titulo}">
+            
+            <label style="color: #333; font-size:13px; font-weight:bold;">Descripción:</label>
+            <textarea id="editDescripcion" rows="3">${obra.descripcion || ''}</textarea>
+            
+            <label style="color: #333; font-size:13px; font-weight:bold;">WhatsApp (solo números):</label>
+            <input type="text" id="editWhatsapp" value="${obra.whatsapp || ''}">
+
+            <label style="color: #333; font-size:13px; font-weight:bold;">Instagram (usuario):</label>
+            <input type="text" id="editInstagram" value="${obra.instagram || ''}">
+
+            <label style="color: #333; font-size:13px; font-weight:bold;">Facebook (usuario/página):</label>
+            <input type="text" id="editFacebook" value="${obra.facebook || ''}">
+
+            <label style="color: #333; font-size:13px; font-weight:bold;">TikTok (usuario):</label>
+            <input type="text" id="editTiktok" value="${obra.tiktok || ''}">
+            
+            <label style="color: #333; font-size:13px; font-weight:bold;">Cambiar imagen (Opcional):</label>
+            <input type="file" id="editImagen" accept="image/*" style="padding:5px;">
+
+            <div style="margin-top:15px;">
+                <button class="btn-verde" onclick="guardarEdicion('${obra.id}')">Guardar Cambios</button>
+                <button class="btn-rojo" onclick="cancelarEdicion('${obra.id}')">Cancelar</button>
+            </div>
+        `;
+    }
+
+    function guardarEdicion(id) {
+        if (usuarioLogueado !== ADMIN_EMAIL) return;
+        const obra = misObras.find(o => o.id === id);
+        if (!obra) return;
+
+        const nuevoTitulo = document.getElementById('editTitulo').value;
+        const nuevaDescripcion = document.getElementById('editDescripcion').value;
+        const nuevoWs = document.getElementById('editWhatsapp').value.replace(/[^0-9]/g, '');
+        const nuevoIg = document.getElementById('editInstagram').value.replace('@', '').trim();
+        const nuevoFb = document.getElementById('editFacebook').value.trim();
+        const nuevoTk = document.getElementById('editTiktok').value.replace('@', '').trim();
+        const archivoNuevaImagen = document.getElementById('editImagen').files[0];
+
+        if (archivoNuevaImagen) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                obra.titulo = nuevoTitulo;
+                obra.descripcion = nuevaDescripcion;
+                obra.whatsapp = nuevoWs;
+                obra.instagram = nuevoIg;
+                obra.facebook = nuevoFb;
+                obra.tiktok = nuevoTk;
+                obra.imagen = event.target.result;
+
+                document.getElementById('modalImg').src = obra.imagen;
+                finalizarGuardadoEdicion(obra);
+            };
+            reader.readAsDataURL(archivoNuevaImagen);
+        } else {
+            obra.titulo = nuevoTitulo;
+            obra.descripcion = nuevaDescripcion;
+            obra.whatsapp = nuevoWs;
+            obra.instagram = nuevoIg;
+            obra.facebook = nuevoFb;
+            obra.tiktok = nuevoTk;
+            finalizarGuardadoEdicion(obra);
+        }
+    }
+
+    function finalizarGuardadoEdicion(obra) {
+        localStorage.setItem('productosResinaEpoxica', JSON.stringify(misObras));
+        cargarGaleria();
+        mostrarVistaNormal(obra);
+        alert("¡Cambios guardados con éxito!");
+    }
+
+    function cancelarEdicion(id) {
+        const obra = misObras.find(o => o.id === id);
+        if (obra) mostrarVistaNormal(obra);
+    }
+
+    function eliminarObra(id) {
+        if (usuarioLogueado !== ADMIN_EMAIL) return;
+
+        const pinIntroducido = prompt(`Escribe el código para confirmar la eliminación (${PIN_ELIMINAR}):`);
+        if (pinIntroducido === null) return; 
+
+        if (pinIntroducido === PIN_ELIMINAR) {
+            misObras = misObras.filter(o => o.id !== id);
+            
+            if (misObras.length === 0) {
+                misObras = [...productosBase];
+                localStorage.removeItem('productosResinaEpoxica');
+            } else {
+                localStorage.setItem('productosResinaEpoxica', JSON.stringify(misObras));
+            }
+
+            cerrarModal();
+            cargarGaleria();
+            alert("El producto ha sido eliminado.");
+        } else {
+            alert("Código incorrecto. No se pudo eliminar.");
+        }
+    }
+
+    function cerrarModal() {
+        document.getElementById('miModal').style.display = 'none';
+    }
+
+    window.onclick = function(event) {
+        const modal = document.getElementById('miModal');
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    actualizarInterfazUsuario();
+    cargarGaleria();
+</script>
+</body>
+</html>
