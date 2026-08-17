@@ -80,10 +80,6 @@
     const ADMIN_EMAIL = "repoxi.pf@gmail.com"; 
     let misObras = JSON.parse(localStorage.getItem('productosResinaEpoxica')) || [];
     
-    if (misObras.length === 0) {
-        misObras = [...productosBase];
-    }
-
     let usuarioLogueado = localStorage.getItem('usuarioNegocioEmail') || null;
 
     function actualizarInterfazUsuario() {
@@ -137,10 +133,17 @@
             return;
         }
         
-        // Reemplazar campos de redes viejos en el formulario por los 4 campos individuales
         const form = document.getElementById('artForm');
-        const grupoRedesViejo = form.querySelector('label[for="redes"]')?.parentElement;
         
+        const grupoImagen = form.querySelector('label[for="imagen"]')?.parentElement;
+        if (grupoImagen) {
+            grupoImagen.innerHTML = `
+                <label for="imagen">Enlace (URL) de la foto de internet:</label>
+                <input type="url" id="imagen" required placeholder="Pega el enlace directo (.jpg o .png) de Postimages o ImgBB" style="width:100%; padding:8px; box-sizing:border-box;">
+            `;
+        }
+
+        const grupoRedesViejo = form.querySelector('label[for="redes"]')?.parentElement;
         if (grupoRedesViejo) {
             grupoRedesViejo.innerHTML = `
                 <div class="form-grupo" style="margin-bottom:10px;">
@@ -172,6 +175,11 @@
     function cargarGaleria() {
         const grid = document.getElementById('galeriaGrid');
         grid.innerHTML = ''; 
+
+        if (misObras.length === 0) {
+            grid.innerHTML = `<p style="color: #666; text-align: center; grid-column: 1/-1; padding: 20px;">No hay productos publicados todavía.</p>`;
+            return;
+        }
 
         misObras.forEach((obra) => {
             const tarjeta = document.createElement('div');
@@ -206,35 +214,32 @@
         const igInput = document.getElementById('instagram')?.value.replace('@', '').trim() || '';
         const fbInput = document.getElementById('facebook')?.value.trim() || '';
         const tkInput = document.getElementById('tiktok')?.value.replace('@', '').trim() || '';
-        const archivoImagen = document.getElementById('imagen').files[0];
+        const urlImagenInput = document.getElementById('imagen').value.trim();
 
-        if (archivoImagen) {
-            const reader = new FileReader();
-            
-            reader.onload = function(event) {
-                const nuevaObra = {
-                    id: 'prod_' + Date.now(),
-                    titulo: tituloInput,
-                    descripcion: descInput,
-                    whatsapp: wsInput,
-                    instagram: igInput,
-                    facebook: fbInput,
-                    tiktok: tkInput,
-                    creador: usuarioLogueado, 
-                    imagen: event.target.result
-                };
-
-                misObras.unshift(nuevaObra);
-                localStorage.setItem('productosResinaEpoxica', JSON.stringify(misObras));
-
-                cargarGaleria();
-                document.getElementById('artForm').reset();
-                cerrarFormulario();
-                alert("¡Producto publicado con éxito!");
-            };
-
-            reader.readAsDataURL(archivoImagen);
+        if (!urlImagenInput.startsWith('http')) {
+            alert("Por favor, introduce un enlace de imagen válido que empiece por http:// o https://");
+            return;
         }
+
+        const nuevaObra = {
+            id: 'prod_' + Date.now(),
+            titulo: tituloInput,
+            descripcion: descInput,
+            whatsapp: wsInput,
+            instagram: igInput,
+            facebook: fbInput,
+            tiktok: tkInput,
+            creador: usuarioLogueado, 
+            imagen: urlImagenInput
+        };
+
+        misObras.unshift(nuevaObra);
+        localStorage.setItem('productosResinaEpoxica', JSON.stringify(misObras));
+
+        cargarGaleria();
+        document.getElementById('artForm').reset();
+        cerrarFormulario();
+        alert("¡Producto publicado con éxito!");
     });
 
     function abrirModal(id) {
@@ -254,19 +259,19 @@
         let tieneRedes = false;
 
         if (obra.whatsapp) {
-            redesHTML += `<a href="https://wa.me/${obra.whatsapp}" target="_blank" style="color:#25D366; text-decoration:none; font-weight:bold;">📲 WhatsApp: +${obra.whatsapp}</a>`;
+            redesHTML += `<a href="https://wa.me{obra.whatsapp}" target="_blank" style="color:#25D366; text-decoration:none; font-weight:bold;">📲 WhatsApp: +${obra.whatsapp}</a>`;
             tieneRedes = true;
         }
         if (obra.instagram) {
-            redesHTML += `<a href="https://instagram.com/${obra.instagram}" target="_blank" style="color:#E1306C; text-decoration:none; font-weight:bold;">📸 Instagram: @${obra.instagram}</a>`;
+            redesHTML += `<a href="https://instagram.com{obra.instagram}" target="_blank" style="color:#E1306C; text-decoration:none; font-weight:bold;">📸 Instagram: @${obra.instagram}</a>`;
             tieneRedes = true;
         }
         if (obra.facebook) {
-            redesHTML += `<a href="https://facebook.com/${obra.facebook}" target="_blank" style="color:#4267B2; text-decoration:none; font-weight:bold;">📘 Facebook: ${obra.facebook}</a>`;
+            redesHTML += `<a href="https://facebook.com{obra.facebook}" target="_blank" style="color:#4267B2; text-decoration:none; font-weight:bold;">📘 Facebook: ${obra.facebook}</a>`;
             tieneRedes = true;
         }
         if (obra.tiktok) {
-            redesHTML += `<a href="https://tiktok.com/@${obra.tiktok}" target="_blank" style="color:#000; text-decoration:none; font-weight:bold;">🎵 TikTok: @${obra.tiktok}</a>`;
+            redesHTML += `<a href="https://tiktok.com{obra.tiktok}" target="_blank" style="color:#000; text-decoration:none; font-weight:bold;">🎵 TikTok: @${obra.tiktok}</a>`;
             tieneRedes = true;
         }
         redesHTML += '</div>';
@@ -277,8 +282,8 @@
         if (usuarioLogueado === ADMIN_EMAIL) {
             opcionesPropietarioHTML = `
                 <div style="margin-top:15px;">
-                    <button class="btn-amarillo" onclick="activarModoEdicion('${obra.id}')">Editar producto</button>
-                    <button class="btn-rojo" onclick="eliminarObra('${obra.id}')">Eliminar producto</button>
+                    <button class="btn-amarillo" style="background:#ffc107; padding:6px 12px; border:none; border-radius:4px; font-weight:bold; cursor:pointer; margin-right:5px;" onclick="activarModoEdicion('${obra.id}')">Editar producto</button>
+                    <button class="btn-rojo" style="background:#dc3545; color:white; padding:6px 12px; border:none; border-radius:4px; font-weight:bold; cursor:pointer;" onclick="eliminarObra('${obra.id}')">Eliminar producto</button>
                 </div>
                 <div class="pin-recordatorio" style="font-size:11px; color:#666; margin-top:5px;">Código para eliminar: <strong>${PIN_ELIMINAR}</strong></div>
             `;
@@ -291,129 +296,10 @@
             ${opcionesPropietarioHTML}
         `;
     }
-
     function activarModoEdicion(id) {
         if (usuarioLogueado !== ADMIN_EMAIL) return;
         const obra = misObras.find(o => o.id === id);
         if (!obra) return;
-
-        const infoContenedor = document.getElementById('modalInfoCampos');
-        infoContenedor.innerHTML = `
-            <h3 style="color:#0d47a1; margin-bottom:15px;">Editar Producto</h3>
-            
-            <label style="color: #333; font-size:13px; font-weight:bold;">Nombre del producto:</label>
-            <input type="text" id="editTitulo" value="${obra.titulo}">
-            
-            <label style="color: #333; font-size:13px; font-weight:bold;">Descripción:</label>
-            <textarea id="editDescripcion" rows="3">${obra.descripcion || ''}</textarea>
-            
-            <label style="color: #333; font-size:13px; font-weight:bold;">WhatsApp (solo números):</label>
-            <input type="text" id="editWhatsapp" value="${obra.whatsapp || ''}">
-
-            <label style="color: #333; font-size:13px; font-weight:bold;">Instagram (usuario):</label>
-            <input type="text" id="editInstagram" value="${obra.instagram || ''}">
-
-            <label style="color: #333; font-size:13px; font-weight:bold;">Facebook (usuario/página):</label>
-            <input type="text" id="editFacebook" value="${obra.facebook || ''}">
-
-            <label style="color: #333; font-size:13px; font-weight:bold;">TikTok (usuario):</label>
-            <input type="text" id="editTiktok" value="${obra.tiktok || ''}">
-            
-            <label style="color: #333; font-size:13px; font-weight:bold;">Cambiar imagen (Opcional):</label>
-            <input type="file" id="editImagen" accept="image/*" style="padding:5px;">
-
-            <div style="margin-top:15px;">
-                <button class="btn-verde" onclick="guardarEdicion('${obra.id}')">Guardar Cambios</button>
-                <button class="btn-rojo" onclick="cancelarEdicion('${obra.id}')">Cancelar</button>
-            </div>
-        `;
-    }
-
-    function guardarEdicion(id) {
-        if (usuarioLogueado !== ADMIN_EMAIL) return;
-        const obra = misObras.find(o => o.id === id);
-        if (!obra) return;
-
-        const nuevoTitulo = document.getElementById('editTitulo').value;
-        const nuevaDescripcion = document.getElementById('editDescripcion').value;
-        const nuevoWs = document.getElementById('editWhatsapp').value.replace(/[^0-9]/g, '');
-        const nuevoIg = document.getElementById('editInstagram').value.replace('@', '').trim();
-        const nuevoFb = document.getElementById('editFacebook').value.trim();
-        const nuevoTk = document.getElementById('editTiktok').value.replace('@', '').trim();
-        const archivoNuevaImagen = document.getElementById('editImagen').files[0];
-
-        if (archivoNuevaImagen) {
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                obra.titulo = nuevoTitulo;
-                obra.descripcion = nuevaDescripcion;
-                obra.whatsapp = nuevoWs;
-                obra.instagram = nuevoIg;
-                obra.facebook = nuevoFb;
-                obra.tiktok = nuevoTk;
-                obra.imagen = event.target.result;
-
-                document.getElementById('modalImg').src = obra.imagen;
-                finalizarGuardadoEdicion(obra);
-            };
-            reader.readAsDataURL(archivoNuevaImagen);
-        } else {
-            obra.titulo = nuevoTitulo;
-            obra.descripcion = nuevaDescripcion;
-            obra.whatsapp = nuevoWs;
-            obra.instagram = nuevoIg;
-            obra.facebook = nuevoFb;
-            obra.tiktok = nuevoTk;
-            finalizarGuardadoEdicion(obra);
-        }
-    }
-
-    function finalizarGuardadoEdicion(obra) {
-        localStorage.setItem('productosResinaEpoxica', JSON.stringify(misObras));
-        cargarGaleria();
-        mostrarVistaNormal(obra);
-        alert("¡Cambios guardados con éxito!");
-    }
-
-    function cancelarEdicion(id) {
-        const obra = misObras.find(o => o.id === id);
-        if (obra) mostrarVistaNormal(obra);
-    }
-
-    function eliminarObra(id) {
-        if (usuarioLogueado !== ADMIN_EMAIL) return;
-
-        const pinIntroducido = prompt(`Escribe el código para confirmar la eliminación (${PIN_ELIMINAR}):`);
-        if (pinIntroducido === null) return; 
-
-        if (pinIntroducido === PIN_ELIMINAR) {
-            misObras = misObras.filter(o => o.id !== id);
-            
-            if (misObras.length === 0) {
-                misObras = [...productosBase];
-                localStorage.removeItem('productosResinaEpoxica');
-            } else {
-                localStorage.setItem('productosResinaEpoxica', JSON.stringify(misObras));
-            }
-
-            cerrarModal();
-            cargarGaleria();
-            alert("El producto ha sido eliminado.");
-        } else {
-            alert("Código incorrecto. No se pudo eliminar.");
-        }
-    }
-
-    function cerrarModal() {
-        document.getElementById('miModal').style.display = 'none';
-    }
-
-    window.onclick = function(event) {
-        const modal = document.getElementById('miModal');
-        if (event.target == modal) {
-            modal.style.display = 'none';
-        }
-    }
 
     actualizarInterfazUsuario();
     cargarGaleria();
