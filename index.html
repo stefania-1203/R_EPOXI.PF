@@ -78,8 +78,15 @@
    <script>
     const PIN_ELIMINAR = "050325";
     const ADMIN_EMAIL = "repoxi.pf@gmail.com"; 
+    
+    // Tratamos de cargar los productos guardados en la memoria
     let misObras = JSON.parse(localStorage.getItem('productosResinaEpoxica')) || [];
     
+    // Si la lista está vacía, intentamos cargar los productos base (si existen)
+    if (misObras.length === 0 && typeof productosBase !== 'undefined') {
+        misObras = [...productosBase];
+    }
+
     let usuarioLogueado = localStorage.getItem('usuarioNegocioEmail') || null;
 
     function actualizarInterfazUsuario() {
@@ -135,11 +142,12 @@
         
         const form = document.getElementById('artForm');
         
+        // REPARACIÓN 1: Cambiamos la subida de archivos locales por un campo URL para links de internet
         const grupoImagen = form.querySelector('label[for="imagen"]')?.parentElement;
         if (grupoImagen) {
             grupoImagen.innerHTML = `
                 <label for="imagen">Enlace (URL) de la foto de internet:</label>
-                <input type="url" id="imagen" required placeholder="Pega el enlace directo (.jpg o .png) de Postimages o ImgBB" style="width:100%; padding:8px; box-sizing:border-box;">
+                <input type="url" id="imagen" required placeholder="Pega el enlace directo (.jpg o .png) de Postimages o ImgBB">
             `;
         }
 
@@ -177,7 +185,7 @@
         grid.innerHTML = ''; 
 
         if (misObras.length === 0) {
-            grid.innerHTML = `<p style="color: #666; text-align: center; grid-column: 1/-1; padding: 20px;">No hay productos publicados todavía.</p>`;
+            grid.innerHTML = `<p style="color: #666; text-align: center; grid-column: 1/-1; padding: 20px;">No hay productos publicados.</p>`;
             return;
         }
 
@@ -200,6 +208,7 @@
         });
     }
 
+    // --- REPARACIÓN 2: PUBLICAR UN PRODUCTO UTILIZANDO EL LINK DE INTERNET ---
     document.getElementById('artForm').addEventListener('submit', function(e) {
         e.preventDefault();
 
@@ -230,7 +239,7 @@
             facebook: fbInput,
             tiktok: tkInput,
             creador: usuarioLogueado, 
-            imagen: urlImagenInput
+            imagen: urlImagenInput // Se guarda la URL directa de internet
         };
 
         misObras.unshift(nuevaObra);
@@ -290,17 +299,23 @@
         }
 
         infoContenedor.innerHTML = `
-            <h3>${obra.titulo}</h3>
-            <p style="margin-top:10px; color:#000;">${obra.descripcion ? obra.descripcion : "Sin descripción."}</p>
+            <h2>${obra.titulo}</h2>
+            <p>${obra.descripcion ? obra.descripcion : "Sin descripción."}</p>
             ${redesHTML}
             ${opcionesPropietarioHTML}
         `;
     }
-    function activarModoEdicion(id) {
-        if (usuarioLogueado !== ADMIN_EMAIL) return;
-        const obra = misObras.find(o => o.id === id);
-        if (!obra) return;
 
+    function cerrarModal() {
+        document.getElementById('miModal').style.display = 'none';
+    }
+
+    window.onclick = function(event) {
+        const modal = document.getElementById('miModal');
+        if (event.target === modal) {
+            cerrarModal();
+        }
+    }
     actualizarInterfazUsuario();
     cargarGaleria();
 </script>
