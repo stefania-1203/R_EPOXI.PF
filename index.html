@@ -75,7 +75,7 @@
         <p>&copy; 2026 R_EPOXI.PF. Todos los derechos reservados.</p>
     </footer>
 
-    <script>
+<script>
     const PIN_ELIMINAR = "050325";
     const ADMIN_EMAIL = "repoxi.pf@gmail.com"; 
          const IMGBB_API_KEY = "1fe64fcd486e5ccc2e400bf8d6056a13"; 
@@ -222,8 +222,8 @@
             const formData = new FormData();
             formData.append("image", archivoImagen);
 
-            // Enviamos la imagen real a ImgBB usando tu clave API
-            const respuesta = await fetch(`https://://imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+            // Enviamos la imagen real a ImgBB usando tu clave API (CORREGIDO)
+            const respuesta = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
                 method: "POST",
                 body: formData
             });
@@ -280,6 +280,10 @@
         document.getElementById('miModal').style.display = 'flex';
     }
 
+    function cerrarModal() {
+        document.getElementById('miModal').style.display = 'none';
+    }
+
     function mostrarVistaNormal(obra) {
         const infoContenedor = document.getElementById('modalInfoCampos');
         
@@ -287,29 +291,34 @@
         let tieneRedes = false;
 
         if (obra.whatsapp) {
-            redesHTML += `<a href="https://wa.me{obra.whatsapp}" target="_blank" style="color:#25D366; text-decoration:none; font-weight:bold;">📲 WhatsApp: +${obra.whatsapp}</a>`;
+            redesHTML += `<a href="https://wa.me/${obra.whatsapp}" target="_blank" style="color:#25D366; text-decoration:none; font-weight:bold;">📲 WhatsApp: +${obra.whatsapp}</a>`;
             tieneRedes = true;
         }
         if (obra.instagram) {
-            redesHTML += `<a href="https://instagram.com{obra.instagram}" target="_blank" style="color:#E1306C; text-decoration:none; font-weight:bold;">📸 Instagram: @${obra.instagram}</a>`;
+            redesHTML += `<a href="https://instagram.com/${obra.instagram}" target="_blank" style="color:#E1306C; text-decoration:none; font-weight:bold;">📸 Instagram: @${obra.instagram}</a>`;
             tieneRedes = true;
         }
         if (obra.facebook) {
-            redesHTML += `<a href="https://facebook.com{obra.facebook}" target="_blank" style="color:#4267B2; text-decoration:none; font-weight:bold;">📘 Facebook: ${obra.facebook}</a>`;
+            redesHTML += `<a href="https://facebook.com/${obra.facebook}" target="_blank" style="color:#4267B2; text-decoration:none; font-weight:bold;">📘 Facebook: ${obra.facebook}</a>`;
             tieneRedes = true;
         }
         if (obra.tiktok) {
-            redesHTML += `<a href="https://tiktok.com{obra.tiktok}" target="_blank" style="color:#000; text-decoration:none; font-weight:bold;">🎵 TikTok: @${obra.tiktok}</a>`;
+            redesHTML += `<a href="https://tiktok.com/@${obra.tiktok}" target="_blank" style="color:#000; text-decoration:none; font-weight:bold;">🎵 TikTok: @${obra.tiktok}</a>`;
             tieneRedes = true;
         }
         redesHTML += '</div>';
 
         if (!tieneRedes) redesHTML = '';
 
+        infoContenedor.innerHTML = `
+            <h2>${obra.titulo}</h2>
+            <p>${obra.descripcion ? obra.descripcion : "Sin descripción."}</p>
+            ${redesHTML}
+        `;
     }
 
     actualizarInterfazUsuario();
     cargarGaleria();
-   </script>
+    </script>
 </body>
 </html>
