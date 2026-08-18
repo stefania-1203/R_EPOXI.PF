@@ -208,7 +208,7 @@
       tarjeta.className = 'tarjeta-obra';
       tarjeta.innerHTML = `
         <div class="cuadro-imagen">
-          <img src="${obra.imagen}" alt="${obra.titulo}">
+          <img src="${obra.imagen}" alt="${obra.titulo}" loading="lazy" decoding="async">
         </div>
         <div class="info-obra">
           <h2>${obra.titulo}</h2>
@@ -229,7 +229,7 @@
     cargarGaleria();
   });
 
-  // Publicar producto nuevo
+  // Publicar producto nuevo con optimización de imagen
   const formArt = document.getElementById('artForm');
   if (formArt) {
     formArt.addEventListener('submit', async function(e) {
@@ -260,7 +260,8 @@
         const datosNube = await respuesta.json();
         if (!datosNube.success) throw new Error("Error en la subida.");
 
-        const urlPublicaDeLaFoto = datosNube.data.display_url || datosNube.data.url;
+        // Obtener versión liviana para carga rápida
+        const urlPublicaDeLaFoto = datosNube.data.medium?.url || datosNube.data.display_url || datosNube.data.url;
 
         await addDoc(collection(db, "productos"), {
           titulo: document.getElementById('titulo').value,
@@ -302,7 +303,7 @@
     }
   };
 
-  // EDITAR producto (Carga formulario completo en el modal)
+  // EDITAR producto
   window.editarProducto = function(id) {
     const obra = misObras.find(o => o.id === id);
     if (!obra) return;
@@ -356,7 +357,7 @@
     `;
   };
 
-  // GUARDAR los cambios en Firestore (y subir nueva foto si se eligió una)
+  // GUARDAR cambios con optimización de imagen
   window.guardarCambiosProducto = async function(id) {
     const obra = misObras.find(o => o.id === id);
     if (!obra) return;
@@ -384,7 +385,7 @@
 
         const datosNube = await respuesta.json();
         if (datosNube.success) {
-          urlImagenFinal = datosNube.data.display_url || datosNube.data.url;
+          urlImagenFinal = datosNube.data.medium?.url || datosNube.data.display_url || datosNube.data.url;
         }
       }
 
