@@ -75,250 +75,275 @@
         <p>&copy; 2026 R_EPOXI.PF. Todos los derechos reservados.</p>
     </footer>
 
-  <script>
-    const PIN_ELIMINAR = "050325";
-    const ADMIN_EMAIL = "repoxi.pf@gmail.com"; 
-         const IMGBB_API_KEY = "1fe64fcd486e5ccc2e400bf8d6056a13"; 
-      let misObras = JSON.parse(localStorage.getItem('productosResinaEpoxica')) || [];
-    let usuarioLogueado = localStorage.getItem('usuarioNegocioEmail') || null;
-    function actualizarInterfazUsuario() {
-        const display = document.getElementById('userEmailDisplay');
-        const btnAuth = document.getElementById('btnAuth');
-        const btnPublicar = document.getElementById('btnPublicarAcceso');
+ <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        if (usuarioLogueado) {
-            display.innerText = `Sesión: ${usuarioLogueado}`;
-            btnAuth.innerText = "Cerrar Sesión";
-            btnAuth.className = "btn-rojo";
+  // Configuración de tu app en Firebase
+  const firebaseConfig = {
+    apiKey: "AIzaSyBtaiW2KFCOEUOC0wJIijQWOoCbNdgBrTM",
+    authDomain: "repoxi.firebaseapp.com",
+    projectId: "repoxi",
+    storageBucket: "repoxi.firebasestorage.app",
+    messagingSenderId: "2765648803",
+    appId: "1:2765648803:web:7bd2860c246e72fbfae016",
+    measurementId: "G-PX26S1ZKEB"
+  };
 
-            if (usuarioLogueado === ADMIN_EMAIL) {
-                btnPublicar.style.display = 'inline-block';
-            } else {
-                btnPublicar.style.display = 'none';
-                cerrarFormulario();
-            }
-        } else {
-            display.innerText = "Sin iniciar sesión";
-            btnAuth.innerText = "Iniciar Sesión";
-            btnAuth.className = "btn-verde";
-            btnPublicar.style.display = 'none';
-            cerrarFormulario();
-        }
+  // Inicializar Firebase y Base de Datos (Firestore)
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // Constantes globales
+  const ADMIN_EMAIL = "repoxi.pf@gmail.com"; 
+  const IMGBB_API_KEY = "1fe64fcd486e5ccc2e400bf8d6056a13"; 
+  
+  let misObras = [];
+  let usuarioLogueado = localStorage.getItem('usuarioNegocioEmail') || null;
+
+  function actualizarInterfazUsuario() {
+    const display = document.getElementById('userEmailDisplay');
+    const btnAuth = document.getElementById('btnAuth');
+    const btnPublicar = document.getElementById('btnPublicarAcceso');
+
+    if (!display || !btnAuth || !btnPublicar) return;
+
+    if (usuarioLogueado) {
+      display.innerText = `Sesión: ${usuarioLogueado}`;
+      btnAuth.innerText = "Cerrar Sesión";
+      btnAuth.className = "btn-rojo";
+
+      if (usuarioLogueado === ADMIN_EMAIL) {
+        btnPublicar.style.display = 'inline-block';
+      } else {
+        btnPublicar.style.display = 'none';
+        cerrarFormulario();
+      }
+    } else {
+      display.innerText = "Sin iniciar sesión";
+      btnAuth.innerText = "Iniciar Sesión";
+      btnAuth.className = "btn-verde";
+      btnPublicar.style.display = 'none';
+      cerrarFormulario();
     }
+  }
 
-    function manejarAutenticacion() {
-        if (usuarioLogueado) {
-            usuarioLogueado = null;
-            localStorage.removeItem('usuarioNegocioEmail');
-            cerrarFormulario();
-            alert("Has cerrado sesión.");
-        } else {
-            const correo = prompt("Introduce tu correo electrónico para iniciar sesión:");
-            if (correo && correo.trim() !== "" && correo.includes('@')) {
-                usuarioLogueado = correo.trim().toLowerCase();
-                localStorage.setItem('usuarioNegocioEmail', usuarioLogueado);
-                alert(`¡Bienvenido! Sesión iniciada como: ${usuarioLogueado}`);
-            } else if (correo !== null) {
-                alert("Por favor, introduce un correo válido conteniendo un '@'.");
-            }
-        }
-        actualizarInterfazUsuario();
-        cargarGaleria();
+  window.manejarAutenticacion = function() {
+    if (usuarioLogueado) {
+      usuarioLogueado = null;
+      localStorage.removeItem('usuarioNegocioEmail');
+      cerrarFormulario();
+      alert("Has cerrado sesión.");
+    } else {
+      const correo = prompt("Introduce tu correo electrónico para iniciar sesión:");
+      if (correo && correo.trim() !== "" && correo.includes('@')) {
+        usuarioLogueado = correo.trim().toLowerCase();
+        localStorage.setItem('usuarioNegocioEmail', usuarioLogueado);
+        alert(`¡Bienvenido! Sesión iniciada como: ${usuarioLogueado}`);
+      } else if (correo !== null) {
+        alert("Por favor, introduce un correo válido con '@'.");
+      }
     }
-
-    function abrirFormularioPublicar() {
-        if (usuarioLogueado !== ADMIN_EMAIL) {
-            alert("Acceso denegado. Solo el correo líder puede publicar productos.");
-            return;
-        }
-        
-        const form = document.getElementById('artForm');
-        
-        // 🛠️ REPARACIÓN VISUAL: Aquí obligamos a la página a mostrar el botón de la segunda imagen
-        const grupoImagen = form.querySelector('label[for="imagen"]')?.parentElement;
-        if (grupoImagen) {
-            grupoImagen.innerHTML = `
-                <label for="imagen">Foto del producto (Selecciona de tu laptop):</label>
-                <input type="file" id="imagen" accept="image/*" required style="padding:5px; display:block; margin-top:5px;">
-            `;
-        }
-
-        const grupoRedesViejo = form.querySelector('label[for="redes"]')?.parentElement;
-        if (grupoRedesViejo) {
-            grupoRedesViejo.innerHTML = `
-                <div class="form-grupo" style="margin-bottom:10px;">
-                    <label for="whatsapp">WhatsApp (Número con código de país, ej: 584121234567):</label>
-                    <input type="text" id="whatsapp" placeholder="Ej: 584121234567">
-                </div>
-                <div class="form-grupo" style="margin-bottom:10px;">
-                    <label for="instagram">Usuario de Instagram (sin @):</label>
-                    <input type="text" id="instagram" placeholder="Ej: mi_negocio">
-                </div>
-                <div class="form-grupo" style="margin-bottom:10px;">
-                    <label for="facebook">Usuario o Página de Facebook:</label>
-                    <input type="text" id="facebook" placeholder="Ej: mi.negocio.oficial">
-                </div>
-                <div class="form-grupo" style="margin-bottom:10px;">
-                    <label for="tiktok">Usuario de TikTok (sin @):</label>
-                    <input type="text" id="tiktok" placeholder="Ej: mi_negocio">
-                </div>
-            `;
-        }
-
-        document.getElementById('formularioPublicar').style.display = 'block';
-    }
-
-    function cerrarFormulario() {
-        document.getElementById('formularioPublicar').style.display = 'none';
-    }
-
-    function cargarGaleria() {
-        const grid = document.getElementById('galeriaGrid');
-        grid.innerHTML = ''; 
-
-        if (misObras.length === 0) {
-            grid.innerHTML = `<p style="color: #666; text-align: center; grid-column: 1/-1; padding: 20px;">No hay productos publicados todavía.</p>`;
-            return;
-        }
-
-        misObras.forEach((obra) => {
-            const tarjeta = document.createElement('div');
-            tarjeta.className = 'tarjeta-obra';
-            tarjeta.innerHTML = `
-                <div class="cuadro-imagen">
-                    <img src="${obra.imagen}" alt="${obra.titulo}">
-                </div>
-                <div class="info-obra">
-                    <h2>${obra.titulo}</h2>
-                    <p>${obra.descripcion ? obra.descripcion : "Sin descripción."}</p>
-                </div>
-            `;
-            tarjeta.addEventListener('click', function() {
-                abrirModal(obra.id);
-            });
-            grid.appendChild(tarjeta);
-        });
-    }
-
-    // 🚀 ENVÍO AUTOMÁTICO DE LA FOTO SELECCIONADA A LA NUBE
-    document.getElementById('artForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-
-        if (usuarioLogueado !== ADMIN_EMAIL) {
-            alert("No tienes permisos para realizar esta acción.");
-            return;
-        }
-
-        // Corregido: Agregamos [0] para capturar correctamente el archivo suelto de la laptop
-        const archivoImagen = document.getElementById('imagen').files[0];
-        if (!archivoImagen) {
-            alert("Por favor, selecciona una foto de tus archivos.");
-            return;
-        }
-
-        try {
-            alert("Subiendo imagen a internet... Por favor espera un momento.");
-
-            const formData = new FormData();
-            formData.append("image", archivoImagen);
-
-            // Enviamos la imagen real a ImgBB usando tu clave API (CORREGIDO)
-            const respuesta = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
-                method: "POST",
-                body: formData
-            });
-
-            const datosNube = await respuesta.json();
-
-            if (!datosNube.success) {
-                throw new Error("La subida falló. Revisa que tu clave de ImgBB esté bien pegada.");
-            }
-
-            // Guardamos el enlace que nos genera la nube automáticamente
-          const urlPublicaDeLaFoto = datosNube.data.display_url || datosNube.data.url;
-
-            const tituloInput = document.getElementById('titulo').value;
-            const descInput = document.getElementById('descripcion').value;
-            const wsInput = document.getElementById('whatsapp')?.value.replace(/[^0-9]/g, '') || '';
-            const igInput = document.getElementById('instagram')?.value.replace('@', '').trim() || '';
-            const fbInput = document.getElementById('facebook')?.value.trim() || '';
-            const tkInput = document.getElementById('tiktok')?.value.replace('@', '').trim() || '';
-
-            const nuevaObra = {
-                id: 'prod_' + Date.now(),
-                titulo: tituloInput,
-                descripcion: descInput,
-                whatsapp: wsInput,
-                instagram: igInput,
-                facebook: fbInput,
-                tiktok: tkInput,
-                creador: usuarioLogueado, 
-                imagen: urlPublicaDeLaFoto
-            };
-
-            misObras.unshift(nuevaObra);
-            localStorage.setItem('productosResinaEpoxica', JSON.stringify(misObras));
-
-            cargarGaleria();
-            document.getElementById('artForm').reset();
-            cerrarFormulario();
-            alert("¡Producto publicado con éxito!");
-
-        } catch (error) {
-            console.error(error);
-            alert("❌ Ocurrió un error al subir la foto. Asegúrate de haber colocado tu API Key de ImgBB en el código.");
-        }
-    });
-
-    function abrirModal(id) {
-        const obra = misObras.find(o => o.id === id);
-        if(!obra) return;
-
-        document.getElementById('modalImg').src = obra.imagen;
-        mostrarVistaNormal(obra);
-
-        document.getElementById('miModal').style.display = 'flex';
-    }
-
-    function cerrarModal() {
-        document.getElementById('miModal').style.display = 'none';
-    }
-
-    function mostrarVistaNormal(obra) {
-        const infoContenedor = document.getElementById('modalInfoCampos');
-        
-        let redesHTML = '<div class="modal-redes" style="margin-top:15px; display:flex; flex-direction:column; gap:8px;">';
-        let tieneRedes = false;
-
-        if (obra.whatsapp) {
-            redesHTML += `<a href="https://wa.me/${obra.whatsapp}" target="_blank" style="color:#25D366; text-decoration:none; font-weight:bold;">📲 WhatsApp: +${obra.whatsapp}</a>`;
-            tieneRedes = true;
-        }
-        if (obra.instagram) {
-            redesHTML += `<a href="https://instagram.com/${obra.instagram}" target="_blank" style="color:#E1306C; text-decoration:none; font-weight:bold;">📸 Instagram: @${obra.instagram}</a>`;
-            tieneRedes = true;
-        }
-        if (obra.facebook) {
-            redesHTML += `<a href="https://facebook.com/${obra.facebook}" target="_blank" style="color:#4267B2; text-decoration:none; font-weight:bold;">📘 Facebook: ${obra.facebook}</a>`;
-            tieneRedes = true;
-        }
-        if (obra.tiktok) {
-            redesHTML += `<a href="https://tiktok.com/@${obra.tiktok}" target="_blank" style="color:#000; text-decoration:none; font-weight:bold;">🎵 TikTok: @${obra.tiktok}</a>`;
-            tieneRedes = true;
-        }
-        redesHTML += '</div>';
-
-        if (!tieneRedes) redesHTML = '';
-
-        infoContenedor.innerHTML = `
-            <h2>${obra.titulo}</h2>
-            <p>${obra.descripcion ? obra.descripcion : "Sin descripción."}</p>
-            ${redesHTML}
-        `;
-    }
-
     actualizarInterfazUsuario();
+  };
+
+  window.abrirFormularioPublicar = function() {
+    if (usuarioLogueado !== ADMIN_EMAIL) {
+      alert("Acceso denegado. Solo el correo líder puede publicar productos.");
+      return;
+    }
+    
+    const form = document.getElementById('artForm');
+    
+    const grupoImagen = form.querySelector('label[for="imagen"]')?.parentElement;
+    if (grupoImagen) {
+      grupoImagen.innerHTML = `
+        <label for="imagen">Foto del producto (Selecciona de tu laptop):</label>
+        <input type="file" id="imagen" accept="image/*" required style="padding:5px; display:block; margin-top:5px;">
+      `;
+    }
+
+    const grupoRedesViejo = form.querySelector('label[for="redes"]')?.parentElement;
+    if (grupoRedesViejo) {
+      grupoRedesViejo.innerHTML = `
+        <div class="form-grupo" style="margin-bottom:10px;">
+          <label for="whatsapp">WhatsApp (Número con código de país, ej: 584121234567):</label>
+          <input type="text" id="whatsapp" placeholder="Ej: 584121234567">
+        </div>
+        <div class="form-grupo" style="margin-bottom:10px;">
+          <label for="instagram">Usuario de Instagram (sin @):</label>
+          <input type="text" id="instagram" placeholder="Ej: mi_negocio">
+        </div>
+        <div class="form-grupo" style="margin-bottom:10px;">
+          <label for="facebook">Usuario o Página de Facebook:</label>
+          <input type="text" id="facebook" placeholder="Ej: mi.negocio.oficial">
+        </div>
+        <div class="form-grupo" style="margin-bottom:10px;">
+          <label for="tiktok">Usuario de TikTok (sin @):</label>
+          <input type="text" id="tiktok" placeholder="Ej: mi_negocio">
+        </div>
+      `;
+    }
+
+    document.getElementById('formularioPublicar').style.display = 'block';
+  };
+
+  window.cerrarFormulario = function() {
+    const el = document.getElementById('formularioPublicar');
+    if (el) el.style.display = 'none';
+  };
+
+  function cargarGaleria() {
+    const grid = document.getElementById('galeriaGrid');
+    if (!grid) return;
+
+    grid.innerHTML = ''; 
+
+    if (misObras.length === 0) {
+      grid.innerHTML = `<p style="color: #666; text-align: center; grid-column: 1/-1; padding: 20px;">No hay productos publicados todavía.</p>`;
+      return;
+    }
+
+    misObras.forEach((obra) => {
+      const tarjeta = document.createElement('div');
+      tarjeta.className = 'tarjeta-obra';
+      tarjeta.innerHTML = `
+        <div class="cuadro-imagen">
+          <img src="${obra.imagen}" alt="${obra.titulo}">
+        </div>
+        <div class="info-obra">
+          <h2>${obra.titulo}</h2>
+          <p>${obra.descripcion ? obra.descripcion : "Sin descripción."}</p>
+        </div>
+      `;
+      tarjeta.addEventListener('click', function() {
+        abrirModal(obra.id);
+      });
+      grid.appendChild(tarjeta);
+    });
+  }
+
+  // Escuchar cambios de la nube en tiempo real con Firestore
+  const q = query(collection(db, "productos"), orderBy("fecha", "desc"));
+  onSnapshot(q, (snapshot) => {
+    misObras = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     cargarGaleria();
-    </script>
+  });
+
+  // Envío del formulario y subida a Firestore
+  const formArt = document.getElementById('artForm');
+  if (formArt) {
+    formArt.addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      if (usuarioLogueado !== ADMIN_EMAIL) {
+        alert("No tienes permisos para realizar esta acción.");
+        return;
+      }
+
+      const archivoImagen = document.getElementById('imagen').files[0];
+      if (!archivoImagen) {
+        alert("Por favor, selecciona una foto de tus archivos.");
+        return;
+      }
+
+      try {
+        alert("Subiendo imagen a internet... Por favor espera un momento.");
+
+        const formData = new FormData();
+        formData.append("image", archivoImagen);
+
+        const respuesta = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+          method: "POST",
+          body: formData
+        });
+
+        const datosNube = await respuesta.json();
+
+        if (!datosNube.success) {
+          throw new Error("La subida falló.");
+        }
+
+        const urlPublicaDeLaFoto = datosNube.data.display_url || datosNube.data.url;
+
+        const tituloInput = document.getElementById('titulo').value;
+        const descInput = document.getElementById('descripcion').value;
+        const wsInput = document.getElementById('whatsapp')?.value.replace(/[^0-9]/g, '') || '';
+        const igInput = document.getElementById('instagram')?.value.replace('@', '').trim() || '';
+        const fbInput = document.getElementById('facebook')?.value.trim() || '';
+        const tkInput = document.getElementById('tiktok')?.value.replace('@', '').trim() || '';
+
+        // Guardar documento directamente en la base de datos Firestore
+        await addDoc(collection(db, "productos"), {
+          titulo: tituloInput,
+          descripcion: descInput,
+          whatsapp: wsInput,
+          instagram: igInput,
+          facebook: fbInput,
+          tiktok: tkInput,
+          creador: usuarioLogueado, 
+          imagen: urlPublicaDeLaFoto,
+          fecha: Date.now()
+        });
+
+        document.getElementById('artForm').reset();
+        cerrarFormulario();
+        alert("¡Producto publicado con éxito en la nube!");
+
+      } catch (error) {
+        console.error(error);
+        alert("❌ Ocurrió un error al publicar el producto.");
+      }
+    });
+  }
+
+  window.abrirModal = function(id) {
+    const obra = misObras.find(o => o.id === id);
+    if (!obra) return;
+
+    document.getElementById('modalImg').src = obra.imagen;
+    mostrarVistaNormal(obra);
+    document.getElementById('miModal').style.display = 'flex';
+  };
+
+  window.cerrarModal = function() {
+    document.getElementById('miModal').style.display = 'none';
+  };
+
+  function mostrarVistaNormal(obra) {
+    const infoContenedor = document.getElementById('modalInfoCampos');
+    
+    let redesHTML = '<div class="modal-redes" style="margin-top:15px; display:flex; flex-direction:column; gap:8px;">';
+    let tieneRedes = false;
+
+    if (obra.whatsapp) {
+      redesHTML += `<a href="https://wa.me/${obra.whatsapp}" target="_blank" style="color:#25D366; text-decoration:none; font-weight:bold;">📲 WhatsApp: +${obra.whatsapp}</a>`;
+      tieneRedes = true;
+    }
+    if (obra.instagram) {
+      redesHTML += `<a href="https://instagram.com/${obra.instagram}" target="_blank" style="color:#E1306C; text-decoration:none; font-weight:bold;">📸 Instagram: @${obra.instagram}</a>`;
+      tieneRedes = true;
+    }
+    if (obra.facebook) {
+      redesHTML += `<a href="https://facebook.com/${obra.facebook}" target="_blank" style="color:#4267B2; text-decoration:none; font-weight:bold;">📘 Facebook: ${obra.facebook}</a>`;
+      tieneRedes = true;
+    }
+    if (obra.tiktok) {
+      redesHTML += `<a href="https://tiktok.com/@${obra.tiktok}" target="_blank" style="color:#000; text-decoration:none; font-weight:bold;">🎵 TikTok: @${obra.tiktok}</a>`;
+      tieneRedes = true;
+    }
+    redesHTML += '</div>';
+
+    if (!tieneRedes) redesHTML = '';
+
+    infoContenedor.innerHTML = `
+      <h2>${obra.titulo}</h2>
+      <p>${obra.descripcion ? obra.descripcion : "Sin descripción."}</p>
+      ${redesHTML}
+    `;
+  }
+
+  actualizarInterfazUsuario();
+</script>
 </body>
 </html>
