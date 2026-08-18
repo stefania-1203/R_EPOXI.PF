@@ -75,7 +75,7 @@
         <p>&copy; 2026 R_EPOXI.PF. Todos los derechos reservados.</p>
     </footer>
 
-<script>
+  <script>
     const PIN_ELIMINAR = "050325";
     const ADMIN_EMAIL = "repoxi.pf@gmail.com"; 
          const IMGBB_API_KEY = "1fe64fcd486e5ccc2e400bf8d6056a13"; 
@@ -235,7 +235,7 @@
             }
 
             // Guardamos el enlace que nos genera la nube automáticamente
-            const urlPublicaDeLaFoto = datosNube.data.url;
+          const urlPublicaDeLaFoto = datosNube.data.display_url || datosNube.data.url;
 
             const tituloInput = document.getElementById('titulo').value;
             const descInput = document.getElementById('descripcion').value;
