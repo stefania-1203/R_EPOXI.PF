@@ -76,11 +76,10 @@
         <p>&copy; 2026 R_EPOXI.PF. Todos los derechos reservados.</p>
     </footer>
 
- <script type="module">
+<script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, doc, deleteDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-  // Configuración de tu app en Firebase
   const firebaseConfig = {
     apiKey: "AIzaSyBtaiW2KFCOEUOC0wJIijQWOoCbNdgBrTM",
     authDomain: "repoxi.firebaseapp.com",
@@ -91,12 +90,11 @@
     measurementId: "G-PX26S1ZKEB"
   };
 
-  // Inicializar Firebase y Base de Datos (Firestore)
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  // Constantes globales
   const ADMIN_EMAIL = "repoxi.pf@gmail.com"; 
+  const PIN_ELIMINAR = "050325";
   const IMGBB_API_KEY = "1fe64fcd486e5ccc2e400bf8d6056a13"; 
   
   let misObras = [];
@@ -142,24 +140,24 @@
         localStorage.setItem('usuarioNegocioEmail', usuarioLogueado);
         alert(`¡Bienvenido! Sesión iniciada como: ${usuarioLogueado}`);
       } else if (correo !== null) {
-        alert("Por favor, introduce un correo válido con '@'.");
+        alert("Por favor, introduce un correo válido.");
       }
     }
     actualizarInterfazUsuario();
+    cargarGaleria();
   };
 
   window.abrirFormularioPublicar = function() {
     if (usuarioLogueado !== ADMIN_EMAIL) {
-      alert("Acceso denegado. Solo el correo líder puede publicar productos.");
+      alert("Acceso denegado. Solo el administrador puede publicar.");
       return;
     }
     
     const form = document.getElementById('artForm');
-    
     const grupoImagen = form.querySelector('label[for="imagen"]')?.parentElement;
     if (grupoImagen) {
       grupoImagen.innerHTML = `
-        <label for="imagen">Foto del producto (Selecciona de tu laptop):</label>
+        <label for="imagen">Foto del producto:</label>
         <input type="file" id="imagen" accept="image/*" required style="padding:5px; display:block; margin-top:5px;">
       `;
     }
@@ -168,19 +166,19 @@
     if (grupoRedesViejo) {
       grupoRedesViejo.innerHTML = `
         <div class="form-grupo" style="margin-bottom:10px;">
-          <label for="whatsapp">WhatsApp (Número con código de país, ej: 584121234567):</label>
+          <label for="whatsapp">WhatsApp (ej: 584121234567):</label>
           <input type="text" id="whatsapp" placeholder="Ej: 584121234567">
         </div>
         <div class="form-grupo" style="margin-bottom:10px;">
-          <label for="instagram">Usuario de Instagram (sin @):</label>
+          <label for="instagram">Instagram (sin @):</label>
           <input type="text" id="instagram" placeholder="Ej: mi_negocio">
         </div>
         <div class="form-grupo" style="margin-bottom:10px;">
-          <label for="facebook">Usuario o Página de Facebook:</label>
-          <input type="text" id="facebook" placeholder="Ej: mi.negocio.oficial">
+          <label for="facebook">Facebook:</label>
+          <input type="text" id="facebook" placeholder="Ej: mi.negocio">
         </div>
         <div class="form-grupo" style="margin-bottom:10px;">
-          <label for="tiktok">Usuario de TikTok (sin @):</label>
+          <label for="tiktok">TikTok (sin @):</label>
           <input type="text" id="tiktok" placeholder="Ej: mi_negocio">
         </div>
       `;
@@ -224,14 +222,15 @@
     });
   }
 
-  // Escuchar cambios de la nube en tiempo real con Firestore
-  const q = query(collection(db, "productos"), orderBy("fecha", "desc"));
-  onSnapshot(q, (snapshot) => {
+  // Leer productos en tiempo real
+  onSnapshot(collection(db, "productos"), (snapshot) => {
     misObras = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    // Ordenar localmente por fecha
+    misObras.sort((a, b) => (b.fecha || 0) - (a.fecha || 0));
     cargarGaleria();
   });
 
-  // Envío del formulario y subida a Firestore
+  // Guardar nuevo producto
   const formArt = document.getElementById('artForm');
   if (formArt) {
     formArt.addEventListener('submit', async function(e) {
@@ -244,12 +243,12 @@
 
       const archivoImagen = document.getElementById('imagen').files[0];
       if (!archivoImagen) {
-        alert("Por favor, selecciona una foto de tus archivos.");
+        alert("Por favor, selecciona una foto.");
         return;
       }
 
       try {
-        alert("Subiendo imagen a internet... Por favor espera un momento.");
+        alert("Subiendo imagen... Por favor espera.");
 
         const formData = new FormData();
         formData.append("image", archivoImagen);
@@ -260,28 +259,17 @@
         });
 
         const datosNube = await respuesta.json();
-
-        if (!datosNube.success) {
-          throw new Error("La subida falló.");
-        }
+        if (!datosNube.success) throw new Error("Error en la subida.");
 
         const urlPublicaDeLaFoto = datosNube.data.display_url || datosNube.data.url;
 
-        const tituloInput = document.getElementById('titulo').value;
-        const descInput = document.getElementById('descripcion').value;
-        const wsInput = document.getElementById('whatsapp')?.value.replace(/[^0-9]/g, '') || '';
-        const igInput = document.getElementById('instagram')?.value.replace('@', '').trim() || '';
-        const fbInput = document.getElementById('facebook')?.value.trim() || '';
-        const tkInput = document.getElementById('tiktok')?.value.replace('@', '').trim() || '';
-
-        // Guardar documento directamente en la base de datos Firestore
         await addDoc(collection(db, "productos"), {
-          titulo: tituloInput,
-          descripcion: descInput,
-          whatsapp: wsInput,
-          instagram: igInput,
-          facebook: fbInput,
-          tiktok: tkInput,
+          titulo: document.getElementById('titulo').value,
+          descripcion: document.getElementById('descripcion').value,
+          whatsapp: document.getElementById('whatsapp')?.value.replace(/[^0-9]/g, '') || '',
+          instagram: document.getElementById('instagram')?.value.replace('@', '').trim() || '',
+          facebook: document.getElementById('facebook')?.value.trim() || '',
+          tiktok: document.getElementById('tiktok')?.value.replace('@', '').trim() || '',
           creador: usuarioLogueado, 
           imagen: urlPublicaDeLaFoto,
           fecha: Date.now()
@@ -289,14 +277,55 @@
 
         document.getElementById('artForm').reset();
         cerrarFormulario();
-        alert("¡Producto publicado con éxito en la nube!");
+        alert("¡Producto publicado con éxito!");
 
       } catch (error) {
         console.error(error);
-        alert("❌ Ocurrió un error al publicar el producto.");
+        alert("❌ Error al publicar el producto.");
       }
     });
   }
+
+  // Función para ELIMINAR producto de Firestore
+  window.eliminarProducto = async function(id) {
+    const pin = prompt("Introduce el PIN de seguridad para eliminar:");
+    if (pin === PIN_ELIMINAR) {
+      try {
+        await deleteDoc(doc(db, "productos", id));
+        cerrarModal();
+        alert("Producto eliminado correctamente.");
+      } catch (error) {
+        console.error(error);
+        alert("Error al intentar eliminar el producto.");
+      }
+    } else if (pin !== null) {
+      alert("PIN incorrecto.");
+    }
+  };
+
+  // Función para EDITAR producto en Firestore
+  window.editarProducto = async function(id) {
+    const obra = misObras.find(o => o.id === id);
+    if (!obra) return;
+
+    const nuevoTitulo = prompt("Nuevo título del producto:", obra.titulo);
+    if (nuevoTitulo === null) return;
+
+    const nuevaDesc = prompt("Nueva descripción:", obra.descripcion || "");
+    if (nuevaDesc === null) return;
+
+    try {
+      await updateDoc(doc(db, "productos", id), {
+        titulo: nuevoTitulo,
+        descripcion: nuevaDesc
+      });
+      cerrarModal();
+      alert("Producto actualizado con éxito.");
+    } catch (error) {
+      console.error(error);
+      alert("Error al actualizar el producto.");
+    }
+  };
 
   window.abrirModal = function(id) {
     const obra = misObras.find(o => o.id === id);
@@ -337,14 +366,26 @@
 
     if (!tieneRedes) redesHTML = '';
 
+    // Controles de administración (solo para el correo líder)
+    let adminBotones = '';
+    if (usuarioLogueado === ADMIN_EMAIL) {
+      adminBotones = `
+        <div style="margin-top:20px; display:flex; gap:10px;">
+          <button onclick="editarProducto('${obra.id}')" style="background:#f39c12; color:white; border:none; padding:8px 12px; border-radius:4px; cursor:pointer;">Editar</button>
+          <button onclick="eliminarProducto('${obra.id}')" style="background:#e74c3c; color:white; border:none; padding:8px 12px; border-radius:4px; cursor:pointer;">Eliminar</button>
+        </div>
+      `;
+    }
+
     infoContenedor.innerHTML = `
       <h2>${obra.titulo}</h2>
       <p>${obra.descripcion ? obra.descripcion : "Sin descripción."}</p>
       ${redesHTML}
+      ${adminBotones}
     `;
   }
-
-  actualizarInterfazUsuario();
+ actualizarInterfazUsuario();
+   cargarGaleria();
 </script>
 </body>
 </html>
